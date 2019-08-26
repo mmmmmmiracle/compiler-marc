@@ -1,5 +1,6 @@
 package scanner;
 
+
 /**
  * A class for the Info objects.
  * An Info object stores the line number and

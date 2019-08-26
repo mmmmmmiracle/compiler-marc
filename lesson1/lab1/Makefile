@@ -8,20 +8,20 @@ FLAGS = -g -cp $(CP)
 CP = .
 
 # define the rules
-Main.class: Main.java Info.class Word.class WordCount.class WordScanner.class
-	$(JC) Main.java
+Main.class: Main.java
+	$(JC) $(FLAGS) Main.java
 
-Info.class: ./scanner/Info.java
-	$(JC)  ./scanner/Info.java
+#Info.class: ./scanner/Info.java
+#	$(JC)  ./scanner/Info.java
 
-Word.class: ./scanner/Word.java
-	$(JC) ./scanner/Word.java
+#Word.class: ./scanner/Word.java
+#	$(JC) ./scanner/Word.java
 
-WordCount.class: ./scanner/WordCount.java
-	$(JC) ./scanner/WordCount.java
+#WordCount.class: ./scanner/WordCount.java
+#	$(JC) ./scanner/WordCount.java
 
-WordScanner.class: ./scanner/WordScanner.java
-	$(JC) ./scanner/WordScanner.java
+#WordScanner.class: ./scanner/WordScanner.java
+#	$(JC) ./scanner/WordScanner.java
 
 
 # testing 
@@ -29,5 +29,5 @@ test:
 	java -cp $(CP) Main
 
 # clean up
-#clean:
-	#rm -f *~ *.class scanner/*.class
+clean:
+	rm -f *~ *.class scanner/*.class

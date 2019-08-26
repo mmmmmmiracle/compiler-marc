@@ -2,6 +2,7 @@ package scanner;
 
 import java.util.*;
 
+
 /**
  * A class for the WordCount data structure. A WordCount object is a map which
  * pairs a word (string) with a list of information (Info)

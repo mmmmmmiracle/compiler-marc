@@ -2,6 +2,7 @@ package scanner;
 
 import java.io.*;
 
+
 /**
  * This class implements a word (string) scanner
  */

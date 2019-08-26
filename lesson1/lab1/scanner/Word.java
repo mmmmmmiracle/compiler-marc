@@ -1,4 +1,5 @@
 package scanner;
+
 /**
  * A class for Word
  */
