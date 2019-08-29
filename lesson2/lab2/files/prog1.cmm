@@ -1,0 +1,9 @@
+int x;
+int y;
+int z;
+
+cin >> x;
+cin >> y;
+
+cout << z;
+

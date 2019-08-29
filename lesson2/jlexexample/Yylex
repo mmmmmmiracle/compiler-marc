@@ -1,0 +1,31 @@
+// in this example, there is no Java code included on top
+// of Yylex.java. There is such code in the labs
+
+%%
+
+%public
+%type Token
+%line
+
+digit = [0-9]
+number = {digit}+
+letter = [a-zA-Z]
+identifier = {letter}+
+whitespace = [ \t\n\r\f]
+
+%%
+
+"+" {return new Token("PLUS");}
+"*" {return new Token("TIMES");}
+"-" {return new Token("MINUS");}
+"/" {return new Token("DIVIDE");}
+"(" {return new Token("LPAREN");}
+")" {return new Token("RPAREN");}
+
+{number} {return new Token("NUMBER", (new Integer(yytext())).intValue());}
+
+{identifier} {return new Token("ID", yytext());}
+
+{whitespace} {}
+
+. {System.out.println("error: unknown character " + yytext() + " found at line " + yyline);}

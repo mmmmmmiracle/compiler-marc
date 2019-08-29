@@ -1,0 +1,108 @@
+package lexer;
+
+import java_cup.runtime.*; // defines the Symbol class
+import parser.sym;
+
+// The generated scanner will return a Symbol for each token that it finds.
+// A Symbol contains an Object field named value; that field will be of type
+// TokenVal, defined below.
+//
+// A TokenVal object contains the line number on which the token occurs as
+// well as the number of the character on that line that starts the token.
+// Some tokens (literals and IDs) also include the value of the token.
+
+
+%%
+
+DIGIT=        [0-9]
+WHITESPACE=   [\040\t]
+LETTER=       [a-zA-Z]
+ESCAPEDCHAR=   [nt'\"?\\]
+NOTNEWLINEORESCAPEDCHAR=   [^\nnt'\"?\\]
+NOTNEWLINEORQUOTE= [^\n\"]
+NOTNEWLINEORQUOTEORESCAPE= [^\n\"\\]
+
+NEWLINE=        [\n]
+ID=             ({LETTER}|"_")({DIGIT}|{LETTER}|"_")*
+BADID=          RESERVEDWORDS
+RESERVEDWORDS=  "bool"|"int"|"void"|"true"|"false"|"struct"|"cin"|"cout"|"if"|"else"|"while"|"return"
+STRINGLITERAL=  \"({NOTNEWLINEORQUOTEORESCAPE}|\\{ESCAPEDCHAR})*\"
+BADSTRINGLITERAL_UNTERMINATED=  \"(\\{ESCAPEDCHAR}|{NOTNEWLINEORQUOTEORESCAPE})*
+BADSTRINGLITERAL_ESCAPED=       \"(.|\n)*(\\{NOTNEWLINEORESCAPEDCHAR})+{NOTNEWLINEORQUOTE}*(\")
+BADSTRINGLITERAL_BOTH =         \"(.|\n)*(\\{NOTNEWLINEORESCAPEDCHAR})+{NOTNEWLINEORQUOTE}*
+BADSTRINGLITERAL=               BADSTRINGLITERAL_UNTERMINATED|BADSTRINGLITERAL_ESCAPED|BADSTRINGLITERAL_BOTH
+COMMENT=        ("//"|"#")[^\n]*
+INTLITERAL=     {DIGIT}+
+
+%implements java_cup.runtime.Scanner
+%function next_token
+%type java_cup.runtime.Symbol
+%public
+%eofval{
+return new Symbol(sym.EOF);
+%eofval}
+
+%line
+
+%%
+{NEWLINE} {CharNum.num = 1;}
+
+{ID} {CharNum.num += yylength(); return new Symbol( sym.ID, new IdTokenVal(yyline+1,CharNum.num,yytext() ));}
+{STRINGLITERAL} {CharNum.num += yylength(); return new Symbol( sym.STRINGLITERAL , new StrLitTokenVal(yyline+1,CharNum.num,yytext())); }
+{BADSTRINGLITERAL_UNTERMINATED} { CharNum.num += yylength(); ErrMsg.fatal( yyline + 1, CharNum.num, "unterminated string literal ignored" ); }
+{BADSTRINGLITERAL_ESCAPED} { CharNum.num += yylength(); ErrMsg.fatal( yyline + 1, CharNum.num, "string literal with bad escaped character ignored" ); }
+{BADSTRINGLITERAL} { CharNum.num += yylength(); ErrMsg.fatal( yyline + 1, CharNum.num, "unterminated string literal ignored" ); }
+{COMMENT} {CharNum.num += yylength();}
+{INTLITERAL} {
+                CharNum.num += yylength(); 
+                Long value = (new Long(yytext())).longValue();
+                if(value > Integer.MAX_VALUE){
+                    ErrMsg.fatal( yyline + 1, CharNum.num, "integer literal too large" );
+                    return new Symbol( sym.INTLITERAL, new IntLitTokenVal( yyline+1, CharNum.num,Integer.MAX_VALUE ) );
+                }else
+                    return new Symbol( sym.INTLITERAL, new IntLitTokenVal( yyline+1, CharNum.num,new Long(value).intValue() ) );
+             }
+
+"int" {CharNum.num += yylength(); return new Symbol( sym.INT );}
+"cout" { CharNum.num += yylength(); return new Symbol( sym.COUT ); }
+"cin" { CharNum.num += yylength(); return new Symbol( sym.CIN ); }
+"bool" { CharNum.num += yylength(); return new Symbol( sym.BOOL ); }
+"if" { CharNum.num += yylength(); return new Symbol( sym.IF ); }
+"return" { CharNum.num += yylength(); return new Symbol( sym.RETURN ); }
+"true" { CharNum.num += yylength(); return new Symbol( sym.TRUE ); }
+"void" { CharNum.num += yylength(); return new Symbol( sym.VOID ); }
+"else" { CharNum.num += yylength(); return new Symbol( sym.ELSE ); }
+"while" { CharNum.num += yylength(); return new Symbol( sym.WHILE ); }
+"false" { CharNum.num += yylength(); return new Symbol( sym.FALSE ); }
+"struct" { CharNum.num += yylength(); return new Symbol( sym.STRUCT ); }
+
+";" { CharNum.num += yylength(); return new Symbol( sym.SEMICOLON ); }
+"<<" { CharNum.num += yylength(); return new Symbol( sym.WRITE ); }
+">>" { CharNum.num += yylength(); return new Symbol( sym.READ ); }
+"++" { CharNum.num += yylength(); return new Symbol( sym.PLUSPLUS ); }
+"/" { CharNum.num += yylength(); return new Symbol( sym.DIVIDE ); }
+"==" { CharNum.num += yylength(); return new Symbol( sym.EQUALS ); }
+">" { CharNum.num += yylength(); return new Symbol( sym.GREATER ); }
+"(" { CharNum.num += yylength(); return new Symbol( sym.LPAREN ); }
+"<" { CharNum.num += yylength(); return new Symbol( sym.LESS ); }
+"-" { CharNum.num += yylength(); return new Symbol( sym.MINUS ); }
+")" { CharNum.num += yylength(); return new Symbol( sym.RPAREN ); }
+"!" { CharNum.num += yylength(); return new Symbol( sym.NOT ); }
+"&&" { CharNum.num += yylength(); return new Symbol( sym.AND ); }
+"||" { CharNum.num += yylength(); return new Symbol( sym.OR ); }
+"," { CharNum.num += yylength(); return new Symbol( sym.COMMA ); }
+"+" { CharNum.num += yylength(); return new Symbol( sym.PLUS ); }
+"=" { CharNum.num += yylength(); return new Symbol( sym.ASSIGN ); }
+"<=" { CharNum.num += yylength(); return new Symbol( sym.LESSEQ ); }
+"." { CharNum.num += yylength(); return new Symbol( sym.DOT ); }
+"--" { CharNum.num += yylength(); return new Symbol( sym.MINUSMINUS ); }
+"{" { CharNum.num += yylength(); return new Symbol( sym.LCURLY ); }
+"}" { CharNum.num += yylength(); return new Symbol( sym.RCURLY ); }
+"*" { CharNum.num += yylength(); return new Symbol( sym.TIMES ); }
+"=" { CharNum.num += yylength(); return new Symbol( sym.READ ); }
+"!=" { CharNum.num += yylength(); return new Symbol( sym.NOTEQUALS ); }
+">=" { CharNum.num += yylength(); return new Symbol( sym.GREATEREQ ); }
+
+{WHITESPACE} {CharNum.num += yylength();}
+"//" {CharNum.num += yylength();}
+. {System.out.println("error: unknown character " + yytext() + " found at line " + yyline);}
