@@ -1,0 +1,17 @@
+struct point{
+    int x_coord;
+    int y_coord;
+};
+
+struct segment{
+    struct point A;
+    struct point B;
+};
+
+void main() {
+    struct point p1;
+    struct point p2;
+    cout << "x coordinate of p1: ";
+    cin >> p1(point).x_coord(int);
+}
+

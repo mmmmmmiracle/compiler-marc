@@ -1,0 +1,14 @@
+bool max;
+
+void main() {
+  int a;
+  
+  max = true;
+
+  cout << "a: ";
+  cin >> a;
+
+  a = a + max; // 11:11 ***ERROR*** Arithmetic operator applied to non-numeric operand
+  cout << "a = ";
+  cout << a;
+}

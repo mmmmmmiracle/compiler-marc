@@ -1,0 +1,14 @@
+void main() {
+
+    int x;
+    int y;
+    int x;
+    
+    x = 10;
+    
+    while ( z > 0 ) {
+        int y;
+        y = x;
+        x = x - 1;
+    }
+}

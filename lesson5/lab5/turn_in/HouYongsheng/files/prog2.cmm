@@ -1,0 +1,25 @@
+
+
+// the max function
+int max(int x, int y) {
+  if ( x >= y ) {
+    return x;
+  }
+  else {
+    return y;
+  }
+}
+
+// the main function
+void main() {
+    int x;
+    int y;
+    int z;
+    cout << "enter x value: ";
+    cin >> x;
+    cout << "enter y value: ";
+    cin >> y;
+    z = max(x,y);
+    cout << "the maximum is ";
+    cout << z;
+}

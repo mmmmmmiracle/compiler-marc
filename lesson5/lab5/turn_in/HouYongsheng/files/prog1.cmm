@@ -1,0 +1,14 @@
+struct Foo {
+  int x;
+  bool b;
+};
+
+void main() {
+  struct Foo z;
+  int y;
+
+  cin >> z.x;
+  z.b = true;
+
+  y = z.x;
+}

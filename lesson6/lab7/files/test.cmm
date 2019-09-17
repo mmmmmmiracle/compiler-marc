@@ -1,0 +1,23 @@
+int max(int x, int y) {
+  if ( x > y ) {
+    return x;
+  }
+  else {
+    return y;
+  }
+}
+
+void main() {
+  int a;
+  int b;
+  int m;
+  
+  cout << "a: ";
+  cin >> a;
+  cout << "b: ";
+  cin >> b;
+  
+  m = max(a,b);
+  cout << "the maximum is ";
+  cout << m;
+}

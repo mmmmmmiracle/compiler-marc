@@ -1,0 +1,13 @@
+void main() {
+    int x;
+    int y;
+    x = 1;
+    y = 2;
+    if ((x < y)) {
+        cout << x;
+    }
+    else {
+        cout << y;
+    }
+}
+

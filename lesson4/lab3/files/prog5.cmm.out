@@ -1,0 +1,9 @@
+int helloWorld(){
+    cout << "Hello\tWorld\n\n";
+    return 0;
+}
+int main(){
+    helloWorld();
+    cout << "Hello World";
+    return 0;
+}

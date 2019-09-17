@@ -1,0 +1,35 @@
+int max;
+struct node {
+	int left;
+	int right;
+};
+struct node n;
+struct tree {
+	struct node root;
+	int size;
+};
+
+int foo(int a, int b){
+	int c;
+	int d;
+	c= b;
+	d = a+b;
+	return c;
+}
+void main() {
+  int a;
+  bool b;
+  int test;
+  struct node n;
+  struct tree t;
+  int after;
+  max = 100;
+  test = n.left;
+  cout << "a: ";
+  cin >> a;
+
+  a = a + max;
+  cout << "a = ";
+  cout << a;
+  foo(a,test);
+}

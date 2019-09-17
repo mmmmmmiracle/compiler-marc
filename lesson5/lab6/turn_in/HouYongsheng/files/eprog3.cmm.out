@@ -1,0 +1,26 @@
+bool bbb[bool0];
+void f[->void](int p1[int2],bool p2[bool3]){
+}
+void main[->void](){
+    int aaa[int5];
+    aaa[int5] = (f[->void] + f[->void]);
+    bbb[bool0] = (f[->void] == 3);
+    bbb[bool0] = (f[->void] > main[->void]);
+    bbb[bool0] = (f[->void] == f[->void]);
+    aaa[int5]();
+    f[->void]();
+    f[->void](5);
+    f[->void](aaa,aaa);
+    f[->void](t,t.a);
+    S();
+    t = 5;
+    t = t;
+    cin >> S;
+    t = (true || 3);
+    bbb[bool0] = (S && t.a);
+    return 10;
+    aaa[int5] = (aaa[int5] + !false));
+    aaa[int5] = (aaa[int5] + "foo");
+    bbb[bool0] = aaa[int5];
+    bbb[bool0] = ((aaa[int5] + true) && (bbb[bool0] < true));
+}

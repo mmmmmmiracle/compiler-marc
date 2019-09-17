@@ -1,0 +1,48 @@
+int global;
+int max(int x, int y) {
+  int g;
+  int m;
+
+  g=global;
+  global ++;
+  if ( x > y ) {
+    int z;
+    int m;
+    int ne;
+    if(x==z){
+      int aa;
+      int xx;
+    }
+  }
+  else {
+    int x;
+
+    return y;
+  }
+
+  while(g>=m){
+    if(g==m){
+      int x1;
+      int x2;
+      int x3;
+      int x4;
+      int x5;
+      int x6;
+    }
+  }
+}
+
+void main() {
+  int a;
+  int b;
+  int m;
+  
+  cout << "a: ";
+  cin >> a;
+  cout << "b: ";
+  cin >> b;
+  
+  m = max(a,b);
+  cout << "the maximum is ";
+  cout << m;
+}

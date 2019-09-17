@@ -1,0 +1,12 @@
+void main() {
+    bool x;
+    bool y;
+    bool x;
+    x = 10;
+    while ((z > 0)) {
+        bool y;
+        y = x;
+        x = (x - 1);
+    }
+}
+

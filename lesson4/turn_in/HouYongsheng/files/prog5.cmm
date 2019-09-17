@@ -1,0 +1,12 @@
+int helloWorld()
+{
+   cout << "Hello\tWorld\n\n";
+   return 0;
+}
+
+int main()
+{
+    helloWorld();
+    cout << "Hello World"; //print Hello World to console
+    return 0;
+}

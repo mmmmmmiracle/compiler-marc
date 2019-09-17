@@ -1,0 +1,18 @@
+int max(int a,int b){
+    if(a >= b){
+        return a;
+    }else{
+        return b;
+    }
+}
+
+int main(){
+    //int a,b,c,d;  //not supported
+    int a;
+    int b;
+    int c;
+    int d;
+    //cin >> a >> b >> c >> d; //not supported
+    cout << max(a , max(max(b, c), d));
+    return -a;
+}

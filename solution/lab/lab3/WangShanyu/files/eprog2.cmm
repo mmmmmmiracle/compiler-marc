@@ -1,0 +1,14 @@
+void main // missing '()'
+{
+
+  int x; int y // missing ';'
+
+  x = 1; y = = 2; // delete '='
+
+  if ( x < y ) // missing '{'
+    cout << x;
+  else
+  {
+    cout << ; // missing 'y'
+  }
+}

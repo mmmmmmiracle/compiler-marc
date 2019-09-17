@@ -1,0 +1,10 @@
+bool max[bool0];
+void main[->void](){
+    int a[int2];
+    max[bool0] = true;
+    cout << "a: ";
+    cin >> a[int2];
+    a[int2] = (a[int2] + max[bool0]);
+    cout << "a = ";
+    cout << a[int2];
+}

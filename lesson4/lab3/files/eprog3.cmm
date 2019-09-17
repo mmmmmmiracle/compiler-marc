@@ -1,0 +1,23 @@
+int max(int x, int y) {
+  if ( x >= y ) {
+    return x;
+  }
+  else // missing '{'
+    return y;
+}
+
+void main { // missing '()'
+  int a;
+  int b;
+  int m;
+
+  cout << "a: " // missing ';'
+  cin >> a;
+  cout << "b: ";
+  cin >> b;
+
+  m = max(a;b); // replace ';' by ','
+
+  cout << "the maximum is ";
+  cout << m;
+}

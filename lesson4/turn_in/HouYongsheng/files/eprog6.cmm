@@ -1,0 +1,3 @@
+int a;
+cin << a;    //uncorrect << and >>
+cout >> a;

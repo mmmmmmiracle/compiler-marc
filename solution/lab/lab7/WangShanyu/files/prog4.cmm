@@ -1,0 +1,13 @@
+int f() {
+  int a;
+  a = 2;
+  return a;
+}
+int a;
+int b;
+void main(){
+	int c;
+	a  = 3;
+	b = a+3;
+	c = a/b;
+}

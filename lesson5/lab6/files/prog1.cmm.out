@@ -1,0 +1,10 @@
+int max[int0];
+void main[->void](){
+    int a[int2];
+    max[int0] = 100;
+    cout << "a: ";
+    cin >> a[int2];
+    a[int2] = (a[int2] + max[int0]);
+    cout << "a = ";
+    cout << a[int2];
+}

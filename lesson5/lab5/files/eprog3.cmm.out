@@ -1,0 +1,30 @@
+bool bbb[bool3];
+struct S[struct5] {
+    int a[int4];
+} 
+struct S t[ast.AST$IdNode@55f963026];
+void f[->void](int p1[int8],bool p2[bool9]){
+}
+void main[->void](){
+    int aaa[int11];
+    aaa = (f + f);
+    bbb = (f == 3);
+    bbb = (f > main);
+    bbb = (f == f);
+    aaa();
+    f();
+    f(5);
+    f(aaa,aaa);
+    f(t,t.a);
+    S();
+    t = 5;
+    t = t;
+    cin >> S;
+    t = (true || 3);
+    bbb = (S && t.a);
+    return 10;
+    aaa = (aaa + !false));
+    aaa = (aaa + "foo");
+    bbb = aaa;
+    bbb = ((aaa + true) && (bbb < true));
+}

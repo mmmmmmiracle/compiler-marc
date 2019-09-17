@@ -1,0 +1,20 @@
+int max[->int](int x[int1],int y[int2]){
+    if((x[int1] + y[int2])) {
+        return x[int1];
+    }
+    else {
+        return y[int2];
+    }
+}
+void main[->void](){
+    int a[int4];
+    bool b[bool5];
+    int m[int6];
+    cout << "a: ";
+    cin >> a[int4];
+    cout << "b: ";
+    cin >> b[bool5];
+    m[int6] = max[->int](a,b);
+    cout << "the maximum is ";
+    cout << m[int6];
+}

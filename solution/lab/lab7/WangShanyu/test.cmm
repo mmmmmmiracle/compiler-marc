@@ -1,0 +1,54 @@
+int a;
+int goo(int a, int b){
+	a = 5;
+	return a - b;
+}
+int foo(int a, int b){
+	return goo(a,b);
+}
+void main(){
+	bool b;
+	int c;
+	cout << "input an integer for a: ";
+	cin >> a;  //10
+	cout << "input a bool for b(1 for true, 0 for false): ";
+	cin >> b;  //0
+	cout << "input an integer for c: ";
+	cin >> c;  //-10
+	while(a>=c){
+		cout << "in while: ";
+		cout <<"a: ";
+		cout << a;
+		cout <<" ";
+		cout <<"b: ";
+		cout <<b;
+		cout <<" ";
+		cout <<"c: ";
+		cout <<c;
+		cout <<"\n";
+		
+		if(a<=c/2){
+			b = true;
+		}
+		else{
+			cout << "a is still bigger than c/2 \n";
+		}
+		a--;
+	}
+	cout << "out while\n";
+	cout << "a: ";
+	cout << a;
+	cout << "\n";
+
+	if("first"=="fiasrst" && (a=1)==1){
+		cout << "equals\n";
+	}
+	else{
+		cout << "not equal\n";
+	}
+	cout << "a: ";
+	cout << a;
+	cout << "\n";
+
+	cout << foo(a, 1);
+}

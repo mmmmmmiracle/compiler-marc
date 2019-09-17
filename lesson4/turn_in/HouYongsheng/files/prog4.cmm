@@ -1,0 +1,21 @@
+struct Point {
+  int x;
+  int y;
+};
+
+void main() {
+
+  struct Point p1;
+  struct Point p2;
+  
+  cin >> p1.x;
+  cin >> p1.y;
+  
+  p2.x = p1.x + 2;
+  p2.y = p1.y - 1;
+  
+  cout << p2.x;
+  cout << p2.y;
+  
+}
+  

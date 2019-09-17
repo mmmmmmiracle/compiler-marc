@@ -1,0 +1,11 @@
+struct Foo[struct2] {
+    int x[int0];
+    bool b[bool1];
+} 
+void main[->void](){
+    struct Foo z[ast.AST$IdNode@55f963024];
+    int y[int5];
+    cin >> z.x;
+    z.b = true;
+    y = z.x;
+}

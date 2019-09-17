@@ -1,0 +1,42 @@
+bool bbb;
+struct S { int a; };
+struct S t;
+
+void f(int p1, bool p2) {
+}
+
+void main() {
+    int aaa;
+
+    // some errors involving illegal operations on functions
+    aaa = f + f; // 12:11 ***ERROR*** Arithmetic operator applied to non-numeric operand AND 12:15 ***ERROR*** Arithmetic operator applied to non-numeric operand
+    bbb = f == 3; // 13:11 ***ERROR*** Type mismatch
+    bbb = f > main; // ***ERROR*** Relational operator applied to non-numeric operand AND 14:15 ***ERROR*** Relational operator applied to non-numeric operand
+    bbb = f == f; // 15:11 ***ERROR*** Equality operator applied to functions
+
+    // some errors involving bad function calls 
+    aaa(); // 18:5 ***ERROR*** Attempt to call a non-function
+    f(); // 19:5 ***ERROR*** Function call with wrong number of args
+    f(5); // 20:5 ***ERROR*** Function call with wrong number of args
+    f(aaa, aaa); // 21:12 ***ERROR*** Type of actual does not match type of formal
+    f(t, t.a); // 22:7 ***ERROR*** Type of actual does not match type of formal AND 22:12 ***ERROR*** Type of actual does not match type of formal
+    S(); // 23:5 ***ERROR*** Attempt to call a non-function
+
+    // some errors involving structs 
+    t = 5; // 26:5 ***ERROR*** Type mismatch
+    t = t; // 27:5 ***ERROR*** Struct variable assignment
+    cin >> S; // 28:12 ***ERROR*** Attempt to read a struct name
+    t = true || 3; // 29:17 ***ERROR*** Logical operator applied to non-bool operand
+    bbb = S && t.a; // 30:11 ***ERROR*** Logical operator applied to non-bool operand AND 30:18 ***ERROR*** Logical operator applied to non-bool operand
+
+    // error involving return
+    return 10; // 33:12 ***ERROR*** Return with a value in a void function
+
+    // other type errors 
+    aaa = aaa + (!false); // 36:19 ***ERROR*** Arithmetic operator applied to non-numeric operand
+    aaa = aaa + "foo"; // 37:17 ***ERROR*** Arithmetic operator applied to non-numeric operand
+    bbb = aaa; // 38:5 ***ERROR*** Type mismatch
+
+    // don't give too many or too few error messages here 
+    bbb = (aaa + true) && (bbb < true); // 41:18 ***ERROR*** Arithmetic operator applied to non-numeric operand AND 41:28 ***ERROR*** Relational operator applied to non-numeric operand AND 41:34 ***ERROR*** Relational operator applied to non-numeric operand
+}
