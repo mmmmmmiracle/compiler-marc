@@ -1,0 +1,20 @@
+int add(int adder1, int adder2){
+    cout << adder1;
+    cout << " + ";
+    cout << adder2;
+    cout << " = ";
+    //cout << adder1 + adder2;
+    //cout << "\n";
+    return adder1 + adder2;
+}
+
+void main(){
+    int a;
+    int b;
+    cout << "Please input adder1:   ";
+    cin  >> a;
+    cout << "Please input adder2:   ";
+    cin  >> b;
+    cout << add(a,b);
+    cout << "\n";
+}

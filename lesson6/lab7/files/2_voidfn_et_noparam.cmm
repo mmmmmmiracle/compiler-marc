@@ -1,0 +1,12 @@
+void sayHello(){
+    cout << "salut\n";
+    cout << "ni hao\n"; 
+    cout << "hello\n";
+    cout << "hallo\n";
+    cout << "ola\n";
+    cout << "hola\n";
+}
+
+void main(){
+    sayHello();
+}

@@ -1,0 +1,25 @@
+struct adder{
+    int a;
+    int b;
+};
+
+struct node{
+    struct adder tmp_adder;
+    int result;
+};
+
+void main(){
+    
+    struct node tmp_node;
+
+    tmp_node.tmp_adder.a = 2;
+    tmp_node.tmp_adder.b = 51;
+    tmp_node.result = tmp_node.tmp_adder.a + tmp_node.tmp_adder.b;
+    
+    cout << tmp_node.tmp_adder.a;
+    cout << " + ";
+    cout << tmp_node.tmp_adder.b;
+    cout << " = ";
+    cout << tmp_node.result;
+    cout << "\n";
+}

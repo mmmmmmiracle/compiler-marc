@@ -1,3 +1,19 @@
+/*
+*@Author: {Hou Yongsheng}
+*@Email : {houys@tju.edu.cn}
+*@Date  : {2019/10/11}
+*@Last Modified by: {Hou Yongsheng}
+*
+*@Reference:
+*   [1]:https://blog.csdn.net/dayancn/article/details/9000754 (Introduction of MIPS instruction set)
+*   [2]:Lecture Note6:Code Generation (I almost follow the guide in this file, it's really helpful)
+*   [3]:https://www.pdfdrive.com/engineering-a-compiler-2nd-edition-by-cooper-and-torczon-e33452800.html (page 597-730)
+*-------(breifly read the book, from chapter 11 to chapter 13)
+*
+*@Repository:
+*   
+*/
+
 package ast;
 
 import java.io.*;
@@ -5,7 +21,6 @@ import java.util.*;
 import lexer.*;
 import symtable.*;
 import codegen.*;
-
 // **********************************************************************
 // The AST class is a container with all the effective classes inside as
 // public static inner classes. To use these classes, use the dot notation
@@ -666,6 +681,13 @@ public static class FnDeclNode extends DeclNode {
         myBody = body;
     }
     public void codeGen(PrintWriter p){
+        //check if it's main func, if main then generate 
+        //      .text  #text segment
+        //      .global main #main function
+        //main:
+        // if not main, gernate
+        //      .text  #text segment
+        //func_name:
         if("main".equals(myId.name())){
             CodeGen.generateWithComment(p, ".text", "text segment");
             CodeGen.generateWithComment(p, ".globl", "main function", "main");
@@ -676,13 +698,36 @@ public static class FnDeclNode extends DeclNode {
             CodeGen.generateLabeled(p, "_"+myId.name(), "", "");
         }
 
+        //And then generate the function entry
+        //(1): push the return address:
+        //          sw      $ra, 0($sp)
+        //          subu    $sp, $sp, 4   
+        //(2): push the control link:
+        //          sw      $fp, 0($sp)
+        //          subu    $sp, $sp, 4
+        //(3): set the FP
+        //(4): push space for the locals
         CodeGen.genPush(p, CodeGen.RA);
         CodeGen.genPush(p, CodeGen.FP);
 
+        CodeGen.generate(p, "addu", CodeGen.FP, CodeGen.SP, 8);
         CodeGen.generate(p, "subu", CodeGen.SP, CodeGen.SP, ((FnInfo)(myId.info())).getLocalSize());
-        CodeGen.generate(p, "addu", CodeGen.FP, CodeGen.SP, ((FnInfo)(myId.info())).getLocalSize() + 8);
+        
+        //After that, generate the function body
         myBody.codeGen(p);
 
+        //Finally, generate the exit code
+        //load return address, restroe the FP and SP for caller's AR,
+        //generate the following code
+        //      lw $ra, 0($fp) #ra = *fp 
+        //      move $t0, $fp #t0 = fp
+        //      lw $fp, -4($fp) #fp = *(fp-4) 
+        //      move $sp, $t0 #sp = t0
+        //      jr $ra
+        //Note that, at the end of main function execution, generate:
+        //      li  $v0, 10
+        //      syscall
+        //code 10 means the exit of program
         CodeGen.generateIndexed(p, "lw", CodeGen.RA, CodeGen.FP, 0);
         CodeGen.generate(p, "move", CodeGen.T0, CodeGen.FP);
         CodeGen.generateIndexed(p, "lw", CodeGen.FP, CodeGen.FP, -4);
@@ -695,11 +740,7 @@ public static class FnDeclNode extends DeclNode {
             CodeGen.generate(p, "jr", CodeGen.RA);
         }
         
-        // lw $ra, 0($fp) #ra = *fp 
-        // move $t0, $fp #t0 = fp
-        // lw $fp, -4($fp) #fp = *(fp-4) 
-        // move $sp, $t0 #sp = t0
-        // jr $ra
+        
     }
     
     public int resolveOffset(int offset){
@@ -844,6 +885,11 @@ public static class StructDeclNode extends DeclNode {
     public StructDeclNode(IdNode id, DeclListNode declList) {
         myId = id;
         myDeclList = declList;
+    }
+
+    public int resolveOffset(int offset){
+        myDeclList.resolveOffset(offset);
+        return offset;
     }
 
     /**
@@ -1043,18 +1089,24 @@ public static class PostIncStmtNode extends StmtNode {
     public void codeGen(PrintWriter p){
         myExp.codeGen(p);
         SymInfo info = null;
-        if(myExp instanceof IdNode)
+        if(myExp instanceof IdNode){
+            CodeGen.genPop(p, CodeGen.T1);
+            
             info = ((IdNode)myExp).info();
-        else if(myExp instanceof DotAccessExpNode)
-            info = ((DotAccessExpNode)myExp).info();
-        if(info.getGlobal()){
-            CodeGen.generateWithComment(p, "la","load address of global variable", CodeGen.T0, "_"+((IdNode)myExp).name());
-        }
-        else {
-            CodeGen.generateWithComment(p, "subu", "load address of local variable",CodeGen.T0, CodeGen.FP,
+            if(info.getGlobal()){
+                CodeGen.generateWithComment(p, "la","load address of global variable", CodeGen.T0, "_"+((IdNode)myExp).name());
+            }
+            else {
+                CodeGen.generateWithComment(p, "subu", "load address of local variable",CodeGen.T0, CodeGen.FP,
                                        ""+info.getOffset());
+            }
         }
-        CodeGen.genPop(p, CodeGen.T1);
+        else if(myExp instanceof DotAccessExpNode){
+            
+            CodeGen.genPop(p, CodeGen.T0);
+            CodeGen.generateIndexed(p, "lw", CodeGen.T1, CodeGen.T0, 0, "load value of struct variable");
+        }
+
         CodeGen.generateWithComment(p, "add", "Post increment", CodeGen.T1, CodeGen.T1, "1");
         CodeGen.generateIndexed(p, "sw", CodeGen.T1, CodeGen.T0, 0, "Store value to address of lhs");
     }
@@ -1148,10 +1200,22 @@ public static class ReadStmtNode extends StmtNode {
     }
     public void codeGen(PrintWriter p){
         SymInfo info = null;
+
+        //(1): check if it's a normal identifier or a dot accessable variable
+        //(2): check if it's global or local, get address through different ways, T0 stores the address
+        //(3): load 5 to V0 for string and int(read in V0), 7 to V0 for double(read in F0)
+        //(4): store variable in memory
+
+        //(1)
         if(myExp instanceof IdNode)
             info = ((IdNode)myExp).info();
         else if(myExp instanceof DotAccessExpNode)
             info = ((DotAccessExpNode)myExp).info();
+        else
+            ;
+        System.out.println(myExp);
+        System.out.println(info);
+        //(2)
         if(info.getGlobal()){
             CodeGen.generateWithComment(p, "la","load address of global variable", CodeGen.T0, "_"+((IdNode)myExp).name());
         }
@@ -1159,13 +1223,12 @@ public static class ReadStmtNode extends StmtNode {
             CodeGen.generateWithComment(p, "subu", "load address of local variable",CodeGen.T0, CodeGen.FP,
                                        ""+info.getOffset());
         }
-        CodeGen.genPush(p, CodeGen.T0);
 
+        //(3)
         CodeGen.generate(p, "li", CodeGen.V0, 5);
         CodeGen.generate(p, "syscall");
-
-        CodeGen.genPop(p, CodeGen.T0);
         
+        //(4)
         CodeGen.generateIndexed(p, "sw", CodeGen.V0, CodeGen.T0, 0, "Store value to address of lhs");
 
     }
@@ -1217,24 +1280,37 @@ public static class WriteStmtNode extends StmtNode {
         myExp = exp;
     }
     public void codeGen(PrintWriter p) {
+        //(1): myexp.codeGen()
+        //(2): if string :
+        //          generate("la",A0,str_label)
+        //          generate("li", V0, 4);
+        //     elif int:
+        //          genPop(A0); Generate code to pop the top-of-stack value into register A0
+        //          generate("li", V0, 1);
+        //     elif double:
+        //          genPop(F12);
+        //          generate("li", V0, 3);
+        //(3): generate("syscall");
+
+        // A0: For outputs of string and int, F12 for output double
+        // V0 = 1 print integer, V0 = 3 print double, V0 = 4 print string(A0 should be string address)
         myExp.codeGen(p);
+
         if (type.isStringType()) {
-            CodeGen.generate(p, "li", CodeGen.V0, 4);
             CodeGen.generate(p, "la", CodeGen.A0, CodeGen.thisStringLabel());
-            CodeGen.generate(p, "syscall");
+            CodeGen.generate(p, "li", CodeGen.V0, 4);
         }
-        else{
-            CodeGen.generate(p, "li", CodeGen.V0, 1);
+        else if(type.isIntType()){
             CodeGen.genPop(p, CodeGen.A0);
-            CodeGen.generate(p, "syscall");
+            CodeGen.generate(p, "li", CodeGen.V0, 1);
+        // }else if(type.()){
+        //     CodeGen.genPop(p, CodeGen.F12);
+        //     CodeGen.generate(p, "li", CodeGen.V0, 1);
+        }else{
+            ;
         }
 
-        // li $v0, 4 
-        // la $a0, str
-        // syscall
-        // li $v0, 1
-        // li $a0, 5 
-        // syscall
+        CodeGen.generate(p, "syscall");
     }
     /**
      * typeCheck
@@ -1291,12 +1367,13 @@ public static class IfStmtNode extends StmtNode {
     }
     public void codeGen(PrintWriter p) {
         myExp.codeGen(p);
-        CodeGen.genPop(p, CodeGen.T0);
+        CodeGen.genPop(p, CodeGen.T0);  //Pop the top-of-stack value into register T0.
         String nextEndifLabel = CodeGen.nextEndifLabel();
-        CodeGen.generate(p, "beqz", CodeGen.T0, nextEndifLabel);
-        myStmtList.codeGen(p);
-        CodeGen.generate(p, "j", nextEndifLabel);
-        CodeGen.generateLabeled(p, nextEndifLabel, "", "");
+        CodeGen.generate(p, "beqz", CodeGen.T0, nextEndifLabel); //jump to "FalseLabel" if T0 == 0， ep means equal, z means zero
+        myStmtList.codeGen(p);  //stmts for true condition
+        CodeGen.generate(p, "j", nextEndifLabel); //after stmts execution, execute the following sections in sequence
+
+        CodeGen.generateLabeled(p, nextEndifLabel, "", "");  //generate endif label
     }
     public int resolveOffset(int offset){
         int after = myDeclList.resolveOffset(offset);
@@ -1558,11 +1635,24 @@ public static class ReturnStmtNode extends StmtNode {
     public ReturnStmtNode(ExpNode exp) {
         this(exp,0,0);
     }
+
     public void codeGen(PrintWriter p){
         if(myExp != null){
             myExp.codeGen(p);
-            CodeGen.genPop(p, CodeGen.V0);
+            if(myExp instanceof DotAccessExpNode){
+                CodeGen.genPop(p, CodeGen.V0);
+                CodeGen.generateIndexed(p, "lw", CodeGen.V0, CodeGen.V0, 0);
+            }
+            else{
+                CodeGen.genPop(p, CodeGen.V0);
+            }
         }
+        // restore FP and SP, and jump to RA
+        // lw   $ra,  (0)$fp
+        // move $t0,  $fp
+        // lw   $fp,  (-4)$fp
+        // move $sp,  $t0
+        // jr   $ra
         CodeGen.generateIndexed(p, "lw", CodeGen.RA, CodeGen.FP, 0);
         CodeGen.generate(p, "move", CodeGen.T0, CodeGen.FP);
         CodeGen.generateIndexed(p, "lw", CodeGen.FP, CodeGen.FP, -4);
@@ -1666,13 +1756,12 @@ public static class IntLitNode extends ExpNode {
         myIntVal = intVal;
     }
 
+    // li $t0, <value>
+    // sw $t0 0($sp)
+    // subu $sp $sp 4
     public void codeGen(PrintWriter p){
         CodeGen.generate(p, "li", CodeGen.T0, myIntVal);
         CodeGen.genPush(p, CodeGen.T0);
-
-        // li $t0 2
-        // sw $t0 0($sp)
-        // subu $sp $sp 4
     }
         
     /**
@@ -1695,8 +1784,11 @@ public static class StringLitNode extends ExpNode {
         super(lineNum,charNum);
         myStrVal = strVal;
     }
+
+    //string must be stored in the static date area, generate a label for string literal.
     public void codeGen(PrintWriter p){
-        //.data str: .asciiz "the answer ="
+        //      .data 
+        //str_<unique_num>: .asciiz <string value>
         CodeGen.generateWithComment(p, ".data", "data segment");
         CodeGen.generateLabeled(p, CodeGen.nextStringLabel(), ".asciiz",
                                        "string value", myStrVal);
@@ -1765,23 +1857,48 @@ public static class IdNode extends ExpNode {
         super(lineNum,charNum);
         myStrVal = strVal;
     }
+
+    //function call , expressions, assignment statements
+    //function:     jump and link
+    //expression:   get variables address(local or global), push the result on the stack
+    //assignment:   get address of lhs, push that address on stack, calculate rhs, store the result to that address
+
+
+    //(1): global or local
+    //(2): struct or normal id
+    //(3): get the address
+    //(4): push the value stored in that address into the stack
     public void codeGen(PrintWriter p){
         if(myInfo.getGlobal()){
-            CodeGen.generate(p, "lw", CodeGen.T0, "_"+myStrVal);
-            CodeGen.genPush(p, CodeGen.T0);
+            if(myInfo.getType().isIntType()){
+                CodeGen.generateWithComment(p, "lw","load global variable", CodeGen.T0, "_"+myStrVal);
+            }else if(myInfo.getType().isStructDefType()){
+                CodeGen.generateWithComment(p, "la", "load the address of global struct variable.", CodeGen.T0, "_" + myStrVal);
+            }else{
+                ;
+            }
         }
         else {
-            CodeGen.generateIndexed(p, "lw", CodeGen.T0, CodeGen.FP,
-                                       -myInfo.getOffset(), "load local variable");
-
-            CodeGen.genPush(p, CodeGen.T0);
+            if(myInfo.getType().isIntType()){
+                CodeGen.generateIndexed(p, "lw", CodeGen.T0, CodeGen.FP,-myInfo.getOffset(), "load local variable");
+            }else if(myInfo.getType().isStructType()){
+                CodeGen.generateWithComment(p, "subu", "load the address of local struct variable.", CodeGen.T0, CodeGen.FP, ""+myInfo.getOffset());
+            }else{
+                ;
+            }
         }
+        CodeGen.genPush(p, CodeGen.T0);
     }
+    
+
+    //(1): jump and link
+    //(2): tear down actual parameters
+    //(3): retrive and push the result if has return
     public void codeGenCall(PrintWriter p){
         FnInfo info = ((FnInfo)(myInfo));
         int paramSize = info.getParamSize();
         CodeGen.generate(p, "jal", "_"+myStrVal);
-        CodeGen.generate(p, "addu", CodeGen.SP, CodeGen.SP, info.getParamSize());
+        CodeGen.generate(p, "addu", CodeGen.SP, CodeGen.SP, paramSize);
         if(info.getReturnType().isVoidType())
             return;
         CodeGen.genPush(p, CodeGen.V0);
@@ -1853,8 +1970,34 @@ public static class DotAccessExpNode extends ExpNode {
         myId = id;
     }
 
+    //(1): lhs is normal id or dot accessable id
+    //(2): check if it's global or local, and get it's address
+    //(3): push the value into stack
     public void codeGen(PrintWriter p) {
-        p.print("codeGen for DotAccessExpNode need to be done");
+
+        myLhs.codeGen(p);
+        // Boolean isGlobal = new Boolean("false"); 
+        boolean isGlobal = false;
+
+        if(myLhs instanceof IdNode){
+            isGlobal = ( (IdNode) myLhs ).info().getGlobal();
+        }else if(myLhs instanceof DotAccessExpNode){
+            isGlobal = ( (DotAccessExpNode) myLhs).info().getGlobal();
+        }else{
+            ;
+        }
+
+        CodeGen.genPop(p, CodeGen.T0);  //get the address of lhs, into T0
+
+        SymInfo info = myId.info();
+
+        if(isGlobal){
+            CodeGen.generateWithComment(p, "addi", CodeGen.T0, CodeGen.T0, ""+info.getOffset());  //offset in lhs value field, global
+        }else{
+            CodeGen.generateWithComment(p, "subu", CodeGen.T0, CodeGen.T0, ""+info.getOffset());  //offset in lhs value field, local
+        }
+
+        CodeGen.genPush(p, CodeGen.T0);
     }
   
     /**
@@ -1990,26 +2133,38 @@ public static class AssignNode extends ExpNode {
 
     public void codeGen(PrintWriter p){
 
-        // 1) Compute address of LHS location; leave result on stack
-        // 2) Compute value of RHS expr; leave result on stack
-        // 3) Pop RHS into $t1
-        // 4) Pop LHS into $t0
-        // 5) Store value $t1 at the address held in $t0
+        //(1): get address of lhs; leave result on stack
+        //(2): compute rhs; leave result on stack
+        //(3): pop rhs into $t1
+        //(4): pop lhs into $t0
+        //(5): Store value $t1 at the address held in $t0(leave a copy of the value on the stack)
+
         SymInfo info = null;
-        if(myLhs instanceof IdNode)
+        // normal variable, or dot accessable variable
+        if(myLhs instanceof IdNode){
             info = ((IdNode)myLhs).info();
-        else if(myLhs instanceof DotAccessExpNode)
-            info = ((DotAccessExpNode)myLhs).info();
-        if(info.getGlobal()){
-            CodeGen.generateWithComment(p, "la","load address of global variable", CodeGen.T0, "_"+((IdNode)myLhs).name());
-        }
-        else {
-            CodeGen.generateWithComment(p, "subu", "load address of local variable",CodeGen.T0, CodeGen.FP,
+            if(info.getGlobal()){
+                CodeGen.generateWithComment(p, "la","load address of global variable", CodeGen.T0, "_"+((IdNode)myLhs).name());
+            }
+            else {
+                CodeGen.generateWithComment(p, "subu", "load address of local variable",CodeGen.T0, CodeGen.FP,
                                        ""+info.getOffset());
+            }
         }
+        else if(myLhs instanceof DotAccessExpNode){
+            myLhs.codeGen(p);
+            CodeGen.genPop(p, CodeGen.T0);
+        }
+        
         CodeGen.genPush(p, CodeGen.T0);
         myRhs.codeGen(p);
-        CodeGen.genPop(p, CodeGen.T1);
+        if(myRhs instanceof DotAccessExpNode){
+            CodeGen.genPop(p, CodeGen.T1);
+            CodeGen.generateIndexed(p, "lw", CodeGen.T1, CodeGen.T1, 0);
+        }
+        else{
+            CodeGen.genPop(p, CodeGen.T1);
+        }
         CodeGen.genPop(p, CodeGen.T0);
         CodeGen.genPush(p, CodeGen.T1);
         CodeGen.generateIndexed(p, "sw", CodeGen.T1, CodeGen.T0, 0, "Store value to address of lhs");
@@ -2191,7 +2346,15 @@ public static class UnaryMinusNode extends UnaryExpNode {
     }
     public void codeGen(PrintWriter p){
         myExp.codeGen(p);
-        CodeGen.genPop(p, CodeGen.T0);
+        if(myExp instanceof DotAccessExpNode){
+            CodeGen.genPop(p, CodeGen.T0);
+            CodeGen.generateIndexed(p, "lw", CodeGen.T0, CodeGen.T0, 0);
+        }
+        else{
+            CodeGen.genPop(p, CodeGen.T0);
+        }
+        //CodeGen.genPop(p, CodeGen.T0);
+
         CodeGen.generate(p, "neg", CodeGen.T1,CodeGen.T0);
         CodeGen.genPush(p, CodeGen.T1);
     }
@@ -2229,7 +2392,14 @@ public static class NotNode extends UnaryExpNode {
     }
     public void codeGen(PrintWriter p){
         myExp.codeGen(p);
-        CodeGen.genPop(p, CodeGen.T0);
+        //CodeGen.genPop(p, CodeGen.T0);
+        if(myExp instanceof DotAccessExpNode){
+            CodeGen.genPop(p, CodeGen.T0);
+            CodeGen.generateIndexed(p, "lw", CodeGen.T0, CodeGen.T0, 0);
+        }
+        else{
+            CodeGen.genPop(p, CodeGen.T0);
+        }
         CodeGen.generate(p, "not", CodeGen.T1,CodeGen.T0);
         CodeGen.genPush(p, CodeGen.T1);
     }
@@ -2430,8 +2600,22 @@ public static class PlusNode extends ArithmeticExpNode {
     public void codeGen(PrintWriter p){
         myExp1.codeGen(p);
         myExp2.codeGen(p);
-        CodeGen.genPop(p, CodeGen.T0);
-        CodeGen.genPop(p, CodeGen.T1);
+        //CodeGen.genPop(p, CodeGen.T0);
+        if(myExp1 instanceof DotAccessExpNode){
+            CodeGen.genPop(p, CodeGen.T0);
+            CodeGen.generateIndexed(p, "lw", CodeGen.T0, CodeGen.T0, 0);
+        }
+        else{
+            CodeGen.genPop(p, CodeGen.T0);
+        }
+        //CodeGen.genPop(p, CodeGen.T1);
+        if(myExp2 instanceof DotAccessExpNode){
+            CodeGen.genPop(p, CodeGen.T1);
+            CodeGen.generateIndexed(p, "lw", CodeGen.T1, CodeGen.T1, 0);
+        }
+        else{
+            CodeGen.genPop(p, CodeGen.T1);
+        }
         CodeGen.generate(p, "add", CodeGen.T0, CodeGen.T1, CodeGen.T0);
         CodeGen.genPush(p, CodeGen.T0);
     }
@@ -2451,8 +2635,22 @@ public static class MinusNode extends ArithmeticExpNode {
     public void codeGen(PrintWriter p){
         myExp1.codeGen(p);
         myExp2.codeGen(p);
-        CodeGen.genPop(p, CodeGen.T0);
-        CodeGen.genPop(p, CodeGen.T1);
+        //CodeGen.genPop(p, CodeGen.T0);
+        if(myExp1 instanceof DotAccessExpNode){
+            CodeGen.genPop(p, CodeGen.T0);
+            CodeGen.generateIndexed(p, "lw", CodeGen.T0, CodeGen.T0, 0);
+        }
+        else{
+            CodeGen.genPop(p, CodeGen.T0);
+        }
+        //CodeGen.genPop(p, CodeGen.T1);
+        if(myExp2 instanceof DotAccessExpNode){
+            CodeGen.genPop(p, CodeGen.T1);
+            CodeGen.generateIndexed(p, "lw", CodeGen.T1, CodeGen.T1, 0);
+        }
+        else{
+            CodeGen.genPop(p, CodeGen.T1);
+        }
         CodeGen.generate(p, "sub", CodeGen.T0, CodeGen.T1, CodeGen.T0);
         CodeGen.genPush(p, CodeGen.T0);
     }
@@ -2472,10 +2670,27 @@ public static class TimesNode extends ArithmeticExpNode {
     public void codeGen(PrintWriter p){
         myExp1.codeGen(p);
         myExp2.codeGen(p);
-        CodeGen.genPop(p, CodeGen.T0);
-        CodeGen.genPop(p, CodeGen.T1);
+        //CodeGen.genPop(p, CodeGen.T0);
+        if(myExp1 instanceof DotAccessExpNode){
+            CodeGen.genPop(p, CodeGen.T0);
+            CodeGen.generateIndexed(p, "lw", CodeGen.T0, CodeGen.T0, 0);
+        }
+        else{
+            CodeGen.genPop(p, CodeGen.T0);
+        }
+        //CodeGen.genPop(p, CodeGen.T1);
+        if(myExp2 instanceof DotAccessExpNode){
+            CodeGen.genPop(p, CodeGen.T1);
+            CodeGen.generateIndexed(p, "lw", CodeGen.T1, CodeGen.T1, 0);
+        }
+        else{
+            CodeGen.genPop(p, CodeGen.T1);
+        }
         CodeGen.generate(p, "mult", CodeGen.T1, CodeGen.T0);
+        //mult(u) src1, reg2  Multiply src1 and reg2, leaving the low-order word
+        //in register lo and the high-order word in register hi
         CodeGen.generate(p, "mflo", CodeGen.T0);
+        //mflo   des, Copy the contents of the lo register to des
         CodeGen.genPush(p, CodeGen.T0);
     }
     public void unparse(PrintWriter p, int indent) {
@@ -2494,10 +2709,24 @@ public static class DivideNode extends ArithmeticExpNode {
     public void codeGen(PrintWriter p){
         myExp1.codeGen(p);
         myExp2.codeGen(p);
-        CodeGen.genPop(p, CodeGen.T0);
-        CodeGen.genPop(p, CodeGen.T1);
+        if(myExp1 instanceof DotAccessExpNode){
+            CodeGen.genPop(p, CodeGen.T0);
+            CodeGen.generateIndexed(p, "lw", CodeGen.T0, CodeGen.T0, 0);
+        }
+        else{
+            CodeGen.genPop(p, CodeGen.T0);
+        }
+        if(myExp2 instanceof DotAccessExpNode){
+            CodeGen.genPop(p, CodeGen.T1);
+            CodeGen.generateIndexed(p, "lw", CodeGen.T1, CodeGen.T1, 0);
+        }
+        else{
+            CodeGen.genPop(p, CodeGen.T1);
+        }
         CodeGen.generate(p, "div", CodeGen.T1, CodeGen.T0);
+        //div(u) des, src1, src2  # des gets src1 / src2
         CodeGen.generate(p, "mflo", CodeGen.T0);
+        //mflo   des, Copy the contents of the lo register to des
         CodeGen.genPush(p, CodeGen.T0);
     }
     public void unparse(PrintWriter p, int indent) {
@@ -2516,16 +2745,30 @@ public static class AndNode extends LogicalExpNode {
     public void codeGen(PrintWriter p){
         String end = CodeGen.nextLabel();
         myExp1.codeGen(p);
-        CodeGen.genPop(p, CodeGen.T0);
+        if(myExp1 instanceof DotAccessExpNode){
+            CodeGen.genPop(p, CodeGen.T0);
+            CodeGen.generateIndexed(p, "lw", CodeGen.T0, CodeGen.T0, 0);
+        }
+        else{
+            CodeGen.genPop(p, CodeGen.T0);
+        }
         CodeGen.genPush(p, CodeGen.T0);
         CodeGen.generateWithComment(p, "beqz", "short circuited for and", CodeGen.T0, end);
         myExp2.codeGen(p);
         CodeGen.genPop(p, CodeGen.T0);
-        CodeGen.genPop(p, CodeGen.T1);
+        if(myExp2 instanceof DotAccessExpNode){
+            CodeGen.genPop(p, CodeGen.T1);
+            CodeGen.generateIndexed(p, "lw", CodeGen.T1, CodeGen.T1, 0);
+        }
+        else{
+            CodeGen.genPop(p, CodeGen.T1);
+        }
         CodeGen.generate(p, "and", CodeGen.T0, CodeGen.T1, CodeGen.T0);
+        //and    des, src1, src2  # des gets the bitwise and of src1 and src2
         CodeGen.genPush(p, CodeGen.T0);
         CodeGen.generateLabeled(p, end, "", "");
     }
+
     public void unparse(PrintWriter p, int indent) {
 	    p.print("(");
 		  myExp1.unparse(p, 0);
@@ -2542,13 +2785,27 @@ public static class OrNode extends LogicalExpNode {
     public void codeGen(PrintWriter p){
         String end = CodeGen.nextLabel();
         myExp1.codeGen(p);
-        CodeGen.genPop(p, CodeGen.T0);
+        if(myExp1 instanceof DotAccessExpNode){
+            CodeGen.genPop(p, CodeGen.T0);
+            CodeGen.generateIndexed(p, "lw", CodeGen.T0, CodeGen.T0, 0);
+        }
+        else{
+            CodeGen.genPop(p, CodeGen.T0);
+        }
         CodeGen.genPush(p, CodeGen.T0);
         CodeGen.generateWithComment(p, "bnez", "short circuited for or", CodeGen.T0, end);
         myExp2.codeGen(p);
         CodeGen.genPop(p, CodeGen.T0);
-        CodeGen.genPop(p, CodeGen.T1);
+        
+        if(myExp2 instanceof DotAccessExpNode){
+            CodeGen.genPop(p, CodeGen.T1);
+            CodeGen.generateIndexed(p, "lw", CodeGen.T1, CodeGen.T1, 0);
+        }
+        else{
+            CodeGen.genPop(p, CodeGen.T1);
+        }
         CodeGen.generate(p, "or", CodeGen.T0, CodeGen.T1, CodeGen.T0);
+        //or     des, src1, src2  # des gets the bitwise logical or of src1 and src2
         CodeGen.genPush(p, CodeGen.T0);
         CodeGen.generateLabeled(p, end, "", "");
     }
@@ -2607,6 +2864,7 @@ public static class EqualsNode extends EqualityExpNode {
             CodeGen.genPop(p, CodeGen.T0);
             CodeGen.genPop(p, CodeGen.T1);
             CodeGen.generate(p, "seq", CodeGen.T0, CodeGen.T1, CodeGen.T0);
+            //seq    des, src1, src2  # des 1 if src1 = src2, 0 otherwise
             CodeGen.genPush(p, CodeGen.T0);
         }
     }
@@ -2664,6 +2922,7 @@ public static class NotEqualsNode extends EqualityExpNode {
             CodeGen.genPop(p, CodeGen.T0);
             CodeGen.genPop(p, CodeGen.T1);
             CodeGen.generate(p, "sne", CodeGen.T0, CodeGen.T1, CodeGen.T0);
+            //sne    des, src1, src2  # des 1 if src1 != src2, 0 otherwise
             CodeGen.genPush(p, CodeGen.T0);
         }
     }
@@ -2683,10 +2942,11 @@ public static class LessNode extends RelationalExpNode {
     public void codeGen(PrintWriter p){
         myExp1.codeGen(p);
         myExp2.codeGen(p);
-        Type.AbstractType type1 = myExp1.typeCheck();
+
         CodeGen.genPop(p, CodeGen.T0);
         CodeGen.genPop(p, CodeGen.T1);
         CodeGen.generate(p, "slt", CodeGen.T0, CodeGen.T1, CodeGen.T0);
+        //slt(u) des, src1, src2  # des 1 if src1 < src2, 0 otherwise
         CodeGen.genPush(p, CodeGen.T0);
         
     }
@@ -2706,11 +2966,11 @@ public static class GreaterNode extends RelationalExpNode {
     public void codeGen(PrintWriter p){
         myExp1.codeGen(p);
         myExp2.codeGen(p);
-        Type.AbstractType type1 = myExp1.typeCheck();
         
         CodeGen.genPop(p, CodeGen.T0);
         CodeGen.genPop(p, CodeGen.T1);
         CodeGen.generate(p, "sgt", CodeGen.T0, CodeGen.T1, CodeGen.T0);
+        //sgt(u) des, src1, src2  # des 1 if src1 > src2, 0 otherwise
         CodeGen.genPush(p, CodeGen.T0);
         
     }
@@ -2730,11 +2990,11 @@ public static class LessEqNode extends RelationalExpNode {
     public void codeGen(PrintWriter p){
         myExp1.codeGen(p);
         myExp2.codeGen(p);
-        Type.AbstractType type1 = myExp1.typeCheck();
         
         CodeGen.genPop(p, CodeGen.T0);
         CodeGen.genPop(p, CodeGen.T1);
         CodeGen.generate(p, "sle", CodeGen.T0, CodeGen.T1, CodeGen.T0);
+        //sle(u) des, src1, src2  # des 1 if src1 <= src2, 0 otherwise
         CodeGen.genPush(p, CodeGen.T0);
     }
     public void unparse(PrintWriter p, int indent) {
@@ -2753,11 +3013,11 @@ public static class GreaterEqNode extends RelationalExpNode {
     public void codeGen(PrintWriter p){
         myExp1.codeGen(p);
         myExp2.codeGen(p);
-        Type.AbstractType type1 = myExp1.typeCheck();
         
         CodeGen.genPop(p, CodeGen.T0);
         CodeGen.genPop(p, CodeGen.T1);
         CodeGen.generate(p, "sge", CodeGen.T0, CodeGen.T1, CodeGen.T0);
+        //sge(u) des, src1, src2  # des 1 if src1 >= src2, 0 otherwise
         CodeGen.genPush(p, CodeGen.T0);
         
     }

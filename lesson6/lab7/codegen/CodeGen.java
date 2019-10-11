@@ -38,6 +38,7 @@ public class CodeGen {
     public static final String A0 = "$a0";
     public static final String T0 = "$t0";
     public static final String T1 = "$t1";
+    public static final String F12 = "$f12";
 
 
     // for pretty printing generated code

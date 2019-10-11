@@ -1,0 +1,8 @@
+int zero(){
+    return 0;
+}
+
+void main(){
+    cout << zero();
+    cout << "\n";
+}

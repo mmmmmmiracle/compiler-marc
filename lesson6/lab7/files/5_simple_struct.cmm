@@ -1,0 +1,21 @@
+struct node{
+    int a;
+    int b;
+    int result;
+};
+
+void main(){
+    
+    struct node tmp_node;
+
+    tmp_node.a = 0;
+    tmp_node.b = 51;
+    tmp_node.result = tmp_node.a + tmp_node.b;
+    
+    cout << tmp_node.a;
+    cout << " + ";
+    cout << tmp_node.b;
+    cout << " = ";
+    cout << tmp_node.result;
+    cout << "\n";
+}
